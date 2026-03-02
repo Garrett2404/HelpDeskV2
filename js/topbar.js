@@ -38,9 +38,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const createTicketBtn = document.getElementById("create-ticket-btn");
-    if (createTicketBtn) {
+    const ticketModal = document.getElementById("ticket-modal");
+    const closeModalBtn = document.getElementById("close-modal-btn");
+    const ticketForm = document.getElementById("ticket-form");
+
+    if (createTicketBtn && ticketModal) {
         createTicketBtn.addEventListener("click", () => {
-            alert("Create Ticket Button has been pressed!");
+            ticketModal.classList.remove("hidden");
+        });
+
+        closeModalBtn.addEventListener("click", () => {
+            ticketModal.classList.add("hidden");
+        });
+
+        // Close when clicking outside the modal box
+        // ticketModal.addEventListener("click", (event) => {
+        //     if (event.target === ticketModal) {
+        //         ticketModal.classList.add("hidden");
+        //     }
+        // });
+
+        ticketForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            // Handle form submission here
+            console.log("Ticket submitted!");
+            ticketModal.classList.add("hidden");
         });
     }
 });

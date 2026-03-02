@@ -100,3 +100,66 @@ hr {
     border-top: 1px solid #eee;
     margin: 5px 0;
 }
+
+/* Form Popup */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.modal h2 {
+    margin: 0 0 0.5rem;
+}
+
+.modal input,
+.modal textarea,
+.modal select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.form-buttons {
+    margin-top: 5px;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: #2c70a2;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.form-buttons:hover {
+    background-color: #0056b3;
+    transition: background-color 0.3s ease;
+}
