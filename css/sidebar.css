@@ -26,7 +26,7 @@
 .sidebar-content a {
     color: white;
     text-decoration: none;
-    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    font-size: clamp(0.8rem, 1vw, 1.1rem);
     padding: 20px;
     white-space: nowrap;
     overflow: hidden;
