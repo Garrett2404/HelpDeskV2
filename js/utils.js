@@ -16,3 +16,11 @@ export async function loadComponent(componentSelector, componentPath) {
         console.error(error);
     }
 }
+
+(function() {
+    const isLoggedIn = sessionStorage.getItem("isLoggedIn");
+
+    if (!isLoggedIn) {
+        window.location.href = "/";
+    }
+})();
