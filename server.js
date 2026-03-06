@@ -1,5 +1,6 @@
 import express from "express";
 import morgan from "morgan";
+import Database from "better-sqlite3";
 
 const app = express();
 const PORT = 8000;
@@ -7,14 +8,25 @@ const adminUsername = "admin";
 const adminPassword = "admin";
 const userUsername = "user";
 const userPassword = "user";
-let tickets = [];
+
+const db = new Database("tickets.db");
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending'
+    )
+`);
 
 app.use(express.json());
 
 // HTTP request logging
 app.use(morgan("dev"));
 
-app.use(express.static("./", { index: false }));3
+app.use(express.static("./", { index: false }));
 
 app.get("/", (req, res) => {
     res.sendFile("pages/login-page.html", { root: "./" });
@@ -43,6 +55,11 @@ app.post("/createTicket", (req, res) => {
 
     if (ticketTitle && ticketDescription && ticketPriority) {
 
+        const insert = db.prepare(`
+            INSERT INTO tickets (id, title, description, priority, status)
+            VALUES (?, ?, ?, ?, ?)
+        `);
+
         const newTicket = {
             id: Date.now(),
             title: ticketTitle,
@@ -51,8 +68,8 @@ app.post("/createTicket", (req, res) => {
             status: "pending"
         };
 
-        tickets.push(newTicket);
-        console.log("ticket saved. Total tickets:", tickets.length);
+        insert.run(newTicket.id, newTicket.title, newTicket.description, newTicket.priority, newTicket.status);
+        console.log("Ticket saved to database.");
 
         res.json({ success: true, message: "Ticket created successfully", ticket: newTicket });
 
@@ -64,17 +81,17 @@ app.post("/createTicket", (req, res) => {
 });
 
 app.get("/getTickets", (req, res) => {
-    res.json(tickets);
+    const tickets = db.prepare("SELECT * FROM tickets").all();
+    res.json(tickets)
 });
 
 app.delete("/deleteTicket/:id", (req, res) => {
     const ticketID = parseInt(req.params.id);
 
-    const initialLength = tickets.length;
-    tickets = tickets.filter(t => t.id !== ticketID);
+    const result = db.prepare("DELETE FROM tickets WHERE id = ?").run(ticketID);
 
-    if (tickets.length < initialLength) {
-        res.json({ success: true, message: "Ticket deleted successfully" });
+    if (result.changes >0) {
+        res.json({ success: true, message: "Ticket deleted from database successfully" });
     } else {
         res.status(404).json({ success: false, message: "Ticket not found" });
     }
