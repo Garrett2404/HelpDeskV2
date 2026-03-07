@@ -28,13 +28,15 @@ export function initTicketForm() {
             const ticketDescription = document.querySelector("#ticket-description").value;
             const ticketPriority = document.querySelector("#ticket-priority").value;
 
+            const userData = JSON.parse(sessionStorage.getItem("userData"));
+            const createdBy = userData ? userData.username : "Guest";
             try {
                 const response = await fetch("/createTicket", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ ticketTitle, ticketDescription, ticketPriority })
+                    body: JSON.stringify({ ticketTitle, ticketDescription, ticketPriority, createdBy: createdBy })
                 });
 
                 const data = await response.json();

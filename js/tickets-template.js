@@ -28,6 +28,7 @@ function renderTickets(tickets) {
             <p>Description: ${ticket.description}</p>
             <p data-priority="${ticket.priority}">Priority: ${ticket.priority}</p>
             <p>Status: ${ticket.status}</p>
+            <p><strong>Created By: ${ticket.createdBy}</strong></p>
         </div>
         <button class="delete-ticket-btn" data-id="${ticket.id}" id="delete-ticket-button">Delete</button>
     </div>

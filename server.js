@@ -18,7 +18,8 @@ db.exec(`
         title TEXT NOT NULL,
         description TEXT NOT NULL,
         priority TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending'
+        status TEXT NOT NULL DEFAULT 'pending',
+        createdBy TEXT NOT NULL
     )
 `);
 
@@ -29,7 +30,7 @@ userDB.exec(`
         password TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'user'
     )
-`)
+`);
 
 app.use(express.json());
 
@@ -47,7 +48,7 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 const seedUsers = userDB.prepare("SELECT COUNT(*) AS count FROM users").get();
-if (seedUsers.count === 0) {
+if (seedUsers && seedUsers.count === 0) {
     userDB.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run("admin", "passwordAdmin", "admin");
     userDB.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run("user", "passwordUser", "user");
     console.log("Database seeded with default users.");
@@ -78,60 +79,76 @@ app.post("/registerUser", (req, res) => {
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
-    const user = userDB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password);
+    try {
+        const user = userDB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password);
 
-    if (user) {
-        res.json({ success: true, message: `Logged in as ${user.role}`, user: { id: user.id, username: user.username, role: user.role } });
-    } else {
-        res.status(401).json({ success: false, message: "Invalid credentials" });
+        if (user) {
+            res.json({ success: true, message: `Logged in as ${user.role}`, user: { id: user.id, username: user.username, role: user.role } });
+        } else {
+            res.status(401).json({ success: false, message: "Invalid credentials" });
+        }
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
 app.post("/createTicket", (req, res) => {
     console.log("Server-Side ticket data:", req.body);
 
-    const { ticketTitle, ticketDescription, ticketPriority } = req.body;
+    const { ticketTitle, ticketDescription, ticketPriority, createdBy } = req.body;
 
     if (ticketTitle && ticketDescription && ticketPriority) {
+        try {
+            const insertTicket = db.prepare(`
+                INSERT INTO tickets (title, description, priority, status, createdBy)
+                VALUES (?, ?, ?, ?, ?)
+            `);
 
-        const insertTicket = db.prepare(`
-            INSERT INTO tickets (id, title, description, priority, status)
-            VALUES (?, ?, ?, ?, ?)
-        `);
+            const newTicket = {
+                title: ticketTitle,
+                description: ticketDescription,
+                priority: ticketPriority,
+                status: "pending",
+                createdBy: createdBy
+            };
 
-        const newTicket = {
-            id: Date.now(),
-            title: ticketTitle,
-            description: ticketDescription,
-            priority: ticketPriority,
-            status: "pending"
-        };
+            insertTicket.run(newTicket.title, newTicket.description, newTicket.priority, newTicket.status, newTicket.createdBy);
+            console.log("Ticket saved to database.");
 
-        insertTicket.run(newTicket.id, newTicket.title, newTicket.description, newTicket.priority, newTicket.status);
-        console.log("Ticket saved to database.");
-
-        res.json({ success: true, message: "Ticket created successfully", ticket: newTicket });
-
+            res.json({ success: true, message: "Ticket created successfully", ticket: newTicket });
+        } catch (error) {
+            console.error("Error creating ticket:", error);
+            res.status(500).json({ success: false, message: "Error creating ticket" });
+        }
     } else {
-
         res.status(400).json({ success: false, message: "Missing required fields" });
-
     }
 });
 
 app.get("/getTickets", (req, res) => {
-    const tickets = db.prepare("SELECT * FROM tickets").all();
-    res.json(tickets)
+    try {
+        const tickets = db.prepare("SELECT * FROM tickets").all();
+        res.json(tickets);
+    } catch (error) {
+        console.error("Error fetching tickets:", error);
+        res.status(500).json({ success: false, message: "Error fetching tickets" });
+    }
 });
 
 app.delete("/deleteTicket/:id", (req, res) => {
     const ticketID = parseInt(req.params.id);
 
-    const result = db.prepare("DELETE FROM tickets WHERE id = ?").run(ticketID);
+    try {
+        const result = db.prepare("DELETE FROM tickets WHERE id = ?").run(ticketID);
 
-    if (result.changes >0) {
-        res.json({ success: true, message: "Ticket deleted from database successfully" });
-    } else {
-        res.status(404).json({ success: false, message: "Ticket not found" });
+        if (result.changes > 0) {
+            res.json({ success: true, message: "Ticket deleted from database successfully" });
+        } else {
+            res.status(404).json({ success: false, message: "Ticket not found" });
+        }
+    } catch (error) {
+        console.error("Error deleting ticket:", error);
+        res.status(500).json({ success: false, message: "Error deleting ticket" });
     }
 });
