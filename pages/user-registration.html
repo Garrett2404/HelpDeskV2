@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Register</title>
     <link rel="icon" href="/assets/images/favicon.png">
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/login-page.css">
+    <link rel="stylesheet" href="/css/user-registration.css">
 </head>
 <body>
-<div id="login-container" class="login-container">
-    <div class="login-modal">
-        <h2>Login</h2>
-        <form id="login-form">
+<div id="register-container" class="register-container">
+    <div class="register-modal">
+        <h2>Register</h2>
+        <form id="register-form">
             <label for="username">Username:</label>
             <input type="text" id="username" placeholder="Username" required/>
             <label for="password">Password:</label>
             <input type="password" id="password" placeholder="Password" required/>
+            <button class="form-buttons" type="submit">Register</button>
             <p id="error-msg" style="color:red; display:none;">Invalid credentials</p>
-            <button class="form-buttons" type="submit">Login</button>
         </form>
-        <button class="form-buttons" id="sign-up-button">Sign Up</button>
     </div>
 </div>
 
-<script src="/js/login-page.js"></script>
+<script src="/js/user-registration.js"></script>
 </body>

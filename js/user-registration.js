@@ -1,5 +1,4 @@
-const loginForm = document.getElementById("login-form");
-const signUp = document.getElementById("sign-up-button");
+const loginForm = document.getElementById("register-form");
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -8,7 +7,7 @@ loginForm.addEventListener("submit", async (event) => {
     const password = document.getElementById("password").value;
 
     try {
-        const response = await fetch("/login", {
+        const response = await fetch("/registerUser", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -19,12 +18,11 @@ loginForm.addEventListener("submit", async (event) => {
         const data = await response.json();
 
         if (response.ok) {
-            console.log("Login successful:", data.message);
-            sessionStorage.setItem("isLoggedIn", "true");
-            sessionStorage.setItem("userData", JSON.stringify(data.user));
-            window.location.href = "/index.html";
+            console.log("Registration Successful:", data.message);
+            // sessionStorage.setItem("userData", JSON.stringify(data.user));
+            window.location.href = "/pages/login-page.html";
         } else {
-            console.error("login failed", data.message);
+            console.error("registration failed", data.message);
             const errorMsg = document.getElementById("error-msg");
             if (errorMsg) {
                 errorMsg.textContent = data.message;
@@ -32,11 +30,7 @@ loginForm.addEventListener("submit", async (event) => {
             }
         }
     } catch (error) {
-        console.error("Error during login:", error);
+        console.error("Error during registration:", error);
     }
 
-});
-
-signUp.addEventListener("click", () => {
-    window.location.href = "/pages/user-registration.html";
 });

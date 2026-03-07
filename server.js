@@ -25,7 +25,7 @@ db.exec(`
 userDB.exec(`
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
+        username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'user'
     )
@@ -52,6 +52,28 @@ if (seedUsers.count === 0) {
     userDB.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run("user", "passwordUser", "user");
     console.log("Database seeded with default users.");
 }
+
+app.post("/registerUser", (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const result = userDB.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, password);
+
+        res.json({
+            success: true,
+            message: "User created successfully",
+            newUser: { id: result.lastInsertRowid, username: username }
+        });
+    } catch (error) {
+        // If username already exists, SQLite throws a 'SQLITE_CONSTRAINT_UNIQUE' error due to the UNIQUE constraint in userDB
+        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return res.status(400).json({ success: false, message: "Username already exists. Please choose another." });
+        }
+
+        // Handle other errors
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
 
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
