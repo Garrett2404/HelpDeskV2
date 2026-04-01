@@ -1,0 +1,16 @@
+I just wanted a section where I could write down important information or comments. - ZBB
+
+
+User Authentication may not work properly on github since its a static system, we may have to create constants for our users or eventually move away from github.
+User accounts might need the same thing.
+
+
+Things to Add:
+
+Settings
+Accessibility
+User accounts/profiles
+Cookies?
+Landing Page
+Public FAQ
+AI Assistant

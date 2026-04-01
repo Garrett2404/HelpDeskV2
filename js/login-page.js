@@ -10,6 +10,17 @@ const signUp = document.getElementById("sign-up-button");
  * Handle login form submission.
  * Sends credentials to the server and manages the session on success.
  */
+
+/* hardcoded credentials for testing */
+/*const admin_username = "admin1";
+const admin_password = "adminpassword";
+
+const client_username = "client1";
+const client_password = "clientpassword";
+
+const employee_username = "employee1";
+const employee_password = "employeepassword";*/
+
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -31,7 +42,7 @@ loginForm.addEventListener("submit", async (event) => {
         if (response.ok) {
             console.log("Login successful:", data.message);
             // Store session data in sessionStorage
-            sessionStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("isLoggedIn", "true");
             sessionStorage.setItem("userData", JSON.stringify(data.user));
             // Redirect to the main dashboard
             window.location.href = "/index.html";
