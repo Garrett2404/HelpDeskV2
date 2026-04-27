@@ -45,8 +45,8 @@ export function initTicketForm() {
             const ticketDescription = document.querySelector("#ticket-description").value;
             const ticketPriority = document.querySelector("#ticket-priority").value;
 
-            // Get current user information from session storage
-            const userData = JSON.parse(sessionStorage.getItem("userData"));
+            // Get current user information from local storage (set during login)
+            const userData = JSON.parse(localStorage.getItem("userData"));
             const createdBy = userData ? userData.username : "Guest";
 
             // Get current timestamp
