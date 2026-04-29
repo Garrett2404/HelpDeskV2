@@ -36,6 +36,7 @@ export function initTicketForm() {
             const ticketTitle = document.querySelector("#ticket-title").value;
             const ticketDescription = document.querySelector("#ticket-description").value;
             const ticketPriority = document.querySelector("#ticket-priority").value;
+            const ticketDepartment = document.querySelector("#ticket-department").value;
 
             // Get current user information from session storage
             const userData = JSON.parse(sessionStorage.getItem("userData"));
@@ -48,7 +49,7 @@ export function initTicketForm() {
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ ticketTitle, ticketDescription, ticketPriority, createdBy: createdBy })
+                    body: JSON.stringify({ ticketTitle, ticketDescription, ticketPriority, ticketDepartment, createdBy: createdBy })
                 });
 
                 const data = await response.json();

@@ -37,6 +37,7 @@ async function loadTicketStatus() {
           <p>${ticket.description}</p>
         </div>
 
+        <p>Department: ${ticket.department || "General"}</p>
         <p class="created-by">Created By: ${ticket.createdBy}</p>
 
         <div class="actions">

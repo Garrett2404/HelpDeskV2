@@ -30,6 +30,18 @@
 
             <!-- Page-Specific Content -->
             <div class="content">
+                <div class="ticket-list-toolbar">
+                    <label for="ticket-sort">Sort by</label>
+                    <select id="ticket-sort">
+                        <option value="default">Default</option>
+                        <option value="time-newest">Time: Newest</option>
+                        <option value="time-oldest">Time: Oldest</option>
+                        <option value="priority-high-low">Priority: High → Low</option>
+                        <option value="priority-low-high">Priority: Low → High</option>
+                        <option value="department-asc">Department A-Z</option>
+                        <option value="department-desc">Department Z-A</option>
+                    </select>
+                </div>
                 <!-- Ticket List Injection Point -->
                 <div id="ticket-container"></div>
             </div>

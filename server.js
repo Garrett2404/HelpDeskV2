@@ -26,10 +26,22 @@ ticketsDB.exec(`
         title TEXT NOT NULL,
         description TEXT NOT NULL,
         priority TEXT NOT NULL,
+        department TEXT NOT NULL DEFAULT 'General',
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         status TEXT NOT NULL DEFAULT 'pending',
         createdBy TEXT NOT NULL
     )
 `);
+
+// Add missing columns to existing tickets table if they do not exist
+const ticketColumns = ticketsDB.prepare("PRAGMA table_info(tickets)").all();
+if (!ticketColumns.some((column) => column.name === "department")) {
+    ticketsDB.prepare("ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'General'").run();
+}
+if (!ticketColumns.some((column) => column.name === "createdAt")) {
+    ticketsDB.prepare("ALTER TABLE tickets ADD COLUMN createdAt TEXT").run();
+    ticketsDB.prepare("UPDATE tickets SET createdAt = datetime('now') WHERE createdAt IS NULL").run();
+}
 
 /**
  * Initialize the 'users' table if it doesn't exist.
@@ -142,24 +154,28 @@ app.post("/login", (req, res) => {
 app.post("/createTicket", (req, res) => {
     console.log("Server-Side ticket data:", req.body);
 
-    const { ticketTitle, ticketDescription, ticketPriority, createdBy } = req.body;
+    const { ticketTitle, ticketDescription, ticketPriority, ticketDepartment, createdBy } = req.body;
+    const normalizedDepartment = ticketDepartment || "General";
 
     if (ticketTitle && ticketDescription && ticketPriority) {
         try {
+            const createdAt = new Date().toISOString();
             const insertTicket = ticketsDB.prepare(`
-                INSERT INTO tickets (title, description, priority, status, createdBy)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO tickets (title, description, priority, department, createdAt, status, createdBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `);
 
             const newTicket = {
                 title: ticketTitle,
                 description: ticketDescription,
                 priority: ticketPriority,
+                department: normalizedDepartment,
+                createdAt,
                 status: "pending",
                 createdBy: createdBy
             };
 
-            insertTicket.run(newTicket.title, newTicket.description, newTicket.priority, newTicket.status, newTicket.createdBy);
+            insertTicket.run(newTicket.title, newTicket.description, newTicket.priority, newTicket.department, newTicket.createdAt, newTicket.status, newTicket.createdBy);
             console.log("Ticket saved to database.");
 
             res.json({ success: true, message: "Ticket created successfully", ticket: newTicket });

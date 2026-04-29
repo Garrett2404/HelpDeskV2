@@ -4,6 +4,7 @@
  */
 
 let tickets = [];
+let currentSort = "default";
 
 /**
  * Fetches all tickets from the server and updates the UI.
@@ -24,11 +25,69 @@ async function fetchTickets() {
  * Renders the list of tickets into the ticket container.
  * @param {Array} tickets - Array of ticket objects to display.
  */
+function getSortValue(ticket, sortKey) {
+  if (sortKey === "time-oldest" || sortKey === "time-newest") {
+    const createdAt = ticket.createdAt ? new Date(ticket.createdAt).getTime() : ticket.id || 0;
+    return createdAt;
+  }
+
+  if (sortKey === "priority-high-low") {
+    const priorityMap = { high: 3, medium: 2, low: 1 };
+    return priorityMap[ticket.priority] || 0;
+  }
+
+  if (sortKey === "priority-low-high") {
+    const priorityMap = { high: 3, medium: 2, low: 1 };
+    return priorityMap[ticket.priority] || 0;
+  }
+
+  if (sortKey === "department-asc" || sortKey === "department-desc") {
+    return ticket.department || "General";
+  }
+
+  return ticket.id || 0;
+}
+
+function getSortedTickets(ticketList) {
+  const sortedTickets = [...ticketList];
+
+  if (currentSort === "default") {
+    return sortedTickets;
+  }
+
+  if (currentSort === "time-newest") {
+    return sortedTickets.sort((a, b) => getSortValue(b, currentSort) - getSortValue(a, currentSort));
+  }
+
+  if (currentSort === "time-oldest") {
+    return sortedTickets.sort((a, b) => getSortValue(a, currentSort) - getSortValue(b, currentSort));
+  }
+
+  if (currentSort === "priority-high-low") {
+    return sortedTickets.sort((a, b) => getSortValue(b, currentSort) - getSortValue(a, currentSort));
+  }
+
+  if (currentSort === "priority-low-high") {
+    return sortedTickets.sort((a, b) => getSortValue(a, currentSort) - getSortValue(b, currentSort));
+  }
+
+  if (currentSort === "department-asc") {
+    return sortedTickets.sort((a, b) => getSortValue(a, currentSort).localeCompare(getSortValue(b, currentSort)));
+  }
+
+  if (currentSort === "department-desc") {
+    return sortedTickets.sort((a, b) => getSortValue(b, currentSort).localeCompare(getSortValue(a, currentSort)));
+  }
+
+  return sortedTickets;
+}
+
 function renderTickets(tickets) {
   const container = document.getElementById("ticket-container");
+  const sortedTickets = getSortedTickets(tickets);
 
   // Display message if no tickets are found
-  if (tickets.length === 0) {
+  if (sortedTickets.length === 0) {
     container.innerHTML = `<h1 class="ticket-title">Tickets</h1>
                                <p class="no-tickets">No, Pending Tickets</p>`;
     return container;
@@ -37,14 +96,19 @@ function renderTickets(tickets) {
   // Map ticket data to HTML cards
   container.innerHTML =
     `<h1 class="ticket-title">Tickets</h1>` +
-    tickets
-      .map(
-        (ticket) => `
+    sortedTickets
+      .map((ticket) => {
+        const createdAt = ticket.createdAt
+          ? new Date(ticket.createdAt).toLocaleString()
+          : "Unknown";
+        return `
     <div class="ticket-card" data-priority="${ticket.priority}">
         <div>
             <h3>#${ticket.id} - ${ticket.title}</h3>
             <p>Description: ${ticket.description}</p>
+            <p>Department: ${ticket.department || "General"}</p>
             <p data-priority="${ticket.priority}">Priority: ${ticket.priority}</p>
+            <p>Created: ${createdAt}</p>
             <p>Status: ${ticket.status}</p>
             <p><strong>Created By: ${ticket.createdBy}</strong></p>
         </div>
@@ -53,8 +117,8 @@ function renderTickets(tickets) {
             <button class="delete-ticket-btn" data-id="${ticket.id}" id="delete-ticket-button">Delete</button>
         </div>
     </div>
-    `,
-      )
+        `;
+      })
       .join("");
 }
 
@@ -114,6 +178,14 @@ document.addEventListener("ticketCreated", (event) => {
 /**
  * Initialize tickets on page load.
  */
+const sortSelect = document.getElementById("ticket-sort");
+if (sortSelect) {
+  sortSelect.addEventListener("change", (event) => {
+    currentSort = event.target.value;
+    renderTickets(tickets);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   fetchTickets().catch((error) => {
     console.error("Failed to initialize tickets:", error);
