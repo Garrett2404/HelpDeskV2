@@ -143,4 +143,24 @@ class DateFilter {
     }
 }
 
-export { PriorityFilter, DateFilter };
+class DepartmentFilter {
+    constructor() {
+        this.items = [];
+        this.departments = [];
+    }
+
+    setItems(items) {
+        this.items = items;
+        this.departments = [...new Set(items.map(item => item.department))];
+    }
+
+    filterByDepartment(department) {
+        if (!this.departments.includes(department)) {
+            console.error('Invalid department');
+            return [];
+        }
+        return this.items.filter(item => item.department === department);
+    }
+}
+
+export { PriorityFilter, DateFilter, DepartmentFilter };

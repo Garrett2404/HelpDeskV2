@@ -14,6 +14,7 @@ let dateRangeStart = null;
 let dateRangeEnd = null;
 let selectedStatuses = new Set();
 let selectedPriorities = new Set();
+let selectedDepartments = new Set();
 let renderTimeout = null; // Debounce for filter renders
 
 /**
@@ -48,6 +49,10 @@ function getAvailablePriorities(tickets) {
   return [...new Set(tickets.map((ticket) => ticket.priority || 'low'))].sort();
 }
 
+function getAvailableDepartments(tickets) {
+  return [...new Set(tickets.map((ticket) => ticket.department || 'General'))].sort();
+}
+
 function applyFilters(tickets) {
   let filtered = tickets;
   const dateFilter = new DateFilter();
@@ -67,6 +72,10 @@ function applyFilters(tickets) {
 
   if (selectedPriorities.size > 0) {
     filtered = filtered.filter((ticket) => selectedPriorities.has(ticket.priority));
+  }
+
+  if (selectedDepartments.size > 0) {
+    filtered = filtered.filter((ticket) => selectedDepartments.has(ticket.department));
   }
 
   return filtered;
@@ -189,10 +198,21 @@ function renderFilterControls(tickets) {
             `).join('')}
           </div>
         </div>
+        <div class="filter-category">
+          <div class="filter-category-title">Department</div>
+          <div class="filter-item-list filter-checkbox-list">
+            ${getAvailableDepartments(tickets).map((department) => `
+              <label class="filter-checkbox-label">
+                <input type="checkbox" class="filter-checkbox" data-filter-type="department" value="${department}" ${selectedDepartments.has(department) ? 'checked' : ''}>
+                ${department}
+              </label>
+            `).join('')}
+          </div>
+        </div>
       </div>`;
 
-  const hasStatusOrPriority = selectedStatuses.size > 0 || selectedPriorities.size > 0;
-  const showActionButtons = filterMode !== 'none' || hasStatusOrPriority;
+  const hasStatusOrPriorityOrDepartment = selectedStatuses.size > 0 || selectedPriorities.size > 0 || selectedDepartments.size > 0;
+  const showActionButtons = filterMode !== 'none' || hasStatusOrPriorityOrDepartment;
 
   if (showActionButtons) {
     filterHTML += `
@@ -234,6 +254,7 @@ function renderTicketCards(tickets) {
           <h3>#${ticket.id} - ${ticket.title}</h3>
           <p>Description: ${ticket.description}</p>
           <p data-priority="${ticket.priority}">Priority: ${ticket.priority}</p>
+          <p>Department: ${ticket.department}</p>
           <p>Status: ${ticket.status}</p>
           <p><strong>Created By: ${ticket.createdBy}</strong></p>
           <p>Created At: ${new Date(ticket.createdAt).toLocaleString()}</p>
@@ -355,7 +376,11 @@ document
         if (event.target.checked) selectedPriorities.add(value);
         else selectedPriorities.delete(value);
       }
+      if (type === 'department') {
+        if (event.target.checked) selectedDepartments.add(value);
+        else selectedDepartments.delete(value);
       return;
+      }
     }
   });
 
@@ -408,6 +433,7 @@ document
       dateRangeEnd = null;
       selectedStatuses.clear();
       selectedPriorities.clear();
+      selectedDepartments.clear();
       renderTickets(tickets); // Full render to reset all controls
       return;
     }
