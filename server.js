@@ -7,15 +7,9 @@
 import express from "express";
 import morgan from "morgan";
 import Database from "better-sqlite3";
-import { createClient } from "@supabase/supabase-js";
-import cors from "cors";
 
 const app = express();
 const PORT = 8000;
-
-const SUPABASE_URL = "https://adnjlrxbqgerjlhgirlq.supabase.co";
-const SUPABASE_KEY = "sb_publishable_sNNSlaz28kpULCpWkBCM3Q_OY6FN8cv";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Initialize databases
 // tickets.db stores support ticket information
@@ -35,8 +29,7 @@ ticketsDB.exec(`
         department TEXT NOT NULL DEFAULT 'General',
         status TEXT NOT NULL DEFAULT 'pending',
         createdBy TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        assignedTo TEXT
+        createdAt TEXT NOT NULL
     )
 `);
 
@@ -48,11 +41,6 @@ try {
 }
 try {
     ticketsDB.exec(`ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'General'`);
-} catch (error) {
-    // Column might already exist, ignore error
-}
-try {
-    ticketsDB.exec(`ALTER TABLE tickets ADD COLUMN assignedTo TEXT`);
 } catch (error) {
     // Column might already exist, ignore error
 }
@@ -70,7 +58,6 @@ userDB.exec(`
 `);
 
 // Middleware configuration
-app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON request bodies
 
 // HTTP request logging for development
@@ -84,6 +71,13 @@ app.use(express.static("./", { index: false }));
  */
 app.get("/", (req, res) => {
     res.sendFile("pages/login-page.html", { root: "./" });
+});
+
+/**
+ * Start the server and listen on all network interfaces.
+ */
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on your IP address or localhost:${PORT}`);
 });
 
 /**
@@ -130,92 +124,23 @@ app.post("/registerUser", (req, res) => {
  * @param {string} req.body.username
  * @param {string} req.body.password
  */
-app.post("/login", async (req, res) => {
+app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: "Username and password are required" });
-    }
-
     try {
-        let email = username;
+        const user = userDB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password);
 
-        // Finds email by username
-        if (!username.includes("@")) {
-            const { data: users, error: lookupError } = await supabase
-                .from("users")
-                .select("email")
-                .ilike("username", username);
-
-            if (lookupError || !users || users.length === 0) {
-                return res.status(401).json({ success: false, message: "Username not found." });
-            }
-
-            email = users[0].email;
+        if (user) {
+            res.json({ 
+                success: true, 
+                message: `Logged in as ${user.role}`, 
+                user: { id: user.id, username: user.username, role: user.role } 
+            });
+        } else {
+            res.status(401).json({ success: false, message: "Invalid credentials" });
         }
-
-        // Sign in with Supabase Auth
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
-
-
-        // No matching user found
-        if (error) {
-            return res.status(401).json({ success: false, message: "Invalid username or password" });
-        }
-
-        // Look for user within database with matching username and password
-        const { data: profile, error: profileError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", data.user.id)
-            .single();
-
-        if (profileError || !profile) {
-            return res.status(401).json({ success: false, message: "Could not load user profile. Please try again." });
-        }
-
-        // User found - return user data
-        res.json({
-            success: true,
-            message: `Logged in as ${profile.role || 'user'}`,
-            user: profile
-        });
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-});
-
-/**
- * DELETE /deleteAccount
- * Deletes a user account from the local users database.
- * @param {number} req.body.id - The ID of the user to delete.
- * @param {string} req.body.username - The username of the user to delete.
- */
-app.delete("/deleteAccount", (req, res) => {
-    const { id, username } = req.body;
-
-    if (!id && !username) {
-        return res.status(400).json({ success: false, message: "Account identifier missing" });
-    }
-
-    try {
-        const stmt = id
-            ? userDB.prepare("DELETE FROM users WHERE id = ?")
-            : userDB.prepare("DELETE FROM users WHERE username = ?");
-
-        const result = id ? stmt.run(id) : stmt.run(username);
-
-        if (result.changes > 0) {
-            res.json({ success: true, message: "Account deleted successfully" });
-        } else {
-            res.status(404).json({ success: false, message: "Account not found" });
-        }
-    } catch (error) {
-        console.error("Delete account error:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 });
@@ -229,18 +154,17 @@ app.delete("/deleteAccount", (req, res) => {
  * @param {string} req.body.department
  * @param {string} req.body.createdBy
  * @param {string} req.body.createdAt
- * @param {string} req.body.assignedTo
  */
 app.post("/createTicket", (req, res) => {
     console.log("Server-Side ticket data:", req.body);
 
-    const { ticketTitle, ticketDescription, ticketPriority, department, createdBy, createdAt, assignedTo } = req.body;
+    const { ticketTitle, ticketDescription, ticketPriority, department, createdBy, createdAt } = req.body;
 
     if (ticketTitle && ticketDescription && ticketPriority && department) {
         try {
             const insertTicket = ticketsDB.prepare(`
-                INSERT INTO tickets (title, description, priority, department, status, createdBy, createdAt, assignedTo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tickets (title, description, priority, department, status, createdBy, createdAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `);
 
             const newTicket = {
@@ -250,14 +174,13 @@ app.post("/createTicket", (req, res) => {
                 department: department,
                 status: "pending",
                 createdBy: createdBy,
-                createdAt: createdAt,
-                assignedTo: assignedTo || null
+                createdAt: createdAt
             };
 
-            insertTicket.run(newTicket.title, newTicket.description, newTicket.priority, newTicket.department, newTicket.status, newTicket.createdBy, newTicket.createdAt, newTicket.assignedTo);
+            const result = insertTicket.run(newTicket.title, newTicket.description, newTicket.priority, newTicket.department, newTicket.status, newTicket.createdBy, newTicket.createdAt);
             console.log("Ticket saved to database.");
 
-            res.json({ success: true, message: "Ticket created successfully", ticket: newTicket });
+            res.json({ success: true, message: "Ticket created successfully", ticket: { id: result.lastInsertRowid, ...newTicket } });
         } catch (error) {
             console.error("Error creating ticket:", error);
             res.status(500).json({ success: false, message: "Error creating ticket" });
@@ -282,110 +205,6 @@ app.get("/getTickets", (req, res) => {
 });
 
 /**
- * GET /getUsers
- * Retrieves all users from the Supabase database for assignment purposes.
- * Falls back to SQLite users if Supabase fails.
- */
-app.get("/getUsers", async (req, res) => {
-    try {
-        const SUPABASE_URL = "https://adnjlrxbqgerjlhgirlq.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_sNNSlaz28kpULCpWkBCM3Q_OY6FN8cv";
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        const { data: users, error } = await supabase
-            .from("users")
-            .select("id, username");
-
-        console.log("Supabase users query result:", { data: users, error });
-
-        if (error) {
-            console.error("Error fetching users from Supabase:", error);
-            // Fall back to SQLite users
-            console.log("Falling back to SQLite users");
-            try {
-                const sqliteUsers = userDB.prepare("SELECT id, username FROM users").all();
-                console.log("SQLite users:", sqliteUsers);
-                res.json(sqliteUsers);
-                return;
-            } catch (sqliteError) {
-                console.error("SQLite fallback also failed:", sqliteError);
-                res.status(500).json({ success: false, message: "Error fetching users from both sources" });
-                return;
-            }
-        }
-
-        // Filter out users without usernames and ensure we have at least the default users
-        let filteredUsers = users ? users.filter(user => user.username) : [];
-
-        // If no users from Supabase, fall back to SQLite
-        if (filteredUsers.length === 0) {
-            console.log("No users from Supabase, falling back to SQLite");
-            const sqliteUsers = userDB.prepare("SELECT id, username FROM users").all();
-            filteredUsers = sqliteUsers;
-        }
-
-        console.log("Final users list:", filteredUsers);
-        res.json(filteredUsers);
-    } catch (error) {
-        console.error("Error fetching users:", error);
-        // Final fallback to SQLite
-        try {
-            const sqliteUsers = userDB.prepare("SELECT id, username FROM users").all();
-            res.json(sqliteUsers);
-        } catch (sqliteError) {
-            console.error("All user fetching methods failed:", sqliteError);
-            res.status(500).json({ success: false, message: "Error fetching users" });
-        }
-    }
-});
-
-/**
- * PUT /updateTicket/:id
- * Updates a ticket's assignment.
- * @param {number} req.params.id - The ID of the ticket to update.
- * @param {string} req.body.assignedTo - The username to assign the ticket to.
- */
-app.put("/updateTicket/:id", (req, res) => {
-    const ticketID = parseInt(req.params.id);
-    const { assignedTo } = req.body;
-
-    try {
-        const result = ticketsDB.prepare("UPDATE tickets SET assignedTo = ? WHERE id = ?").run(assignedTo, ticketID);
-
-        if (result.changes > 0) {
-            res.json({ success: true, message: "Ticket updated successfully" });
-        } else {
-            res.status(404).json({ success: false, message: "Ticket not found" });
-        }
-    } catch (error) {
-        console.error("Error updating ticket:", error);
-        res.status(500).json({ success: false, message: "Error updating ticket" });
-    }
-});
-
-/**
- * PUT /closeTicket/:id
- * Closes a ticket by setting its status to 'closed'.
- * @param {number} req.params.id - The ID of the ticket to close.
- */
-app.put("/closeTicket/:id", (req, res) => {
-    const ticketID = parseInt(req.params.id);
-
-    try {
-        const result = ticketsDB.prepare("UPDATE tickets SET status = 'closed' WHERE id = ?").run(ticketID);
-
-        if (result.changes > 0) {
-            res.json({ success: true, message: "Ticket closed successfully" });
-        } else {
-            res.status(404).json({ success: false, message: "Ticket not found" });
-        }
-    } catch (error) {
-        console.error("Error closing ticket:", error);
-        res.status(500).json({ success: false, message: "Error closing ticket" });
-    }
-});
-
-/**
  * DELETE /deleteTicket/:id
  * Removes a ticket from the database by its ID.
  * @param {number} req.params.id - The ID of the ticket to delete.
@@ -405,11 +224,4 @@ app.delete("/deleteTicket/:id", (req, res) => {
         console.error("Error deleting ticket:", error);
         res.status(500).json({ success: false, message: "Error deleting ticket" });
     }
-});
-
-/**
- * Start the server and listen on all network interfaces.
- */
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on your IP address or localhost:${PORT}`);
 });
